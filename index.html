@@ -1,11 +1,181 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
+    --border: #d2d2d7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    padding: 24px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 40px 32px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 6px;
+  }
+  p.sub {
+    color: var(--muted);
+    margin: 0 0 28px;
+    font-size: 14px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    margin-top: 18px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    width: 100%;
+    margin-top: 26px;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { background: #a1c9f1; cursor: not-allowed; }
+  #status {
+    margin-top: 16px;
+    font-size: 14px;
+    text-align: center;
+    min-height: 20px;
+  }
+  #status.ok { color: #1a7f37; }
+  #status.err { color: #d1242f; }
+</style>
 </head>
 <body>
-    <h1>Numele:</h2> <input type="text">
-    <a href="about.html">Get to about</a>
+
+<div class="card">
+  <h1>Pace!</h1>
+  <p class="sub">Completați datele de mai jos.</p>
+  <form id="entryForm"></form>
+  <div id="status"></div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // ====== 1. PASTE YOUR FIREBASE CONFIG HERE ======
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+  // =================================================
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ====== 2. EDIT THIS LIST TO ADD/REMOVE FIELDS ======
+  // type can be: text, email, tel, number
+  const FIELDS = [
+    { name: "name", label: "Name", type: "text", required: true },
+    // { name: "email", label: "Email", type: "email", required: false },
+    // { name: "phone", label: "Phone", type: "tel", required: false },
+  ];
+  // ======================================================
+
+  const form = document.getElementById("entryForm");
+  const statusEl = document.getElementById("status");
+
+  // Build the form fields dynamically from FIELDS
+  FIELDS.forEach(field => {
+    const label = document.createElement("label");
+    label.textContent = field.label + (field.required ? " *" : "");
+    label.htmlFor = field.name;
+
+    const input = document.createElement("input");
+    input.type = field.type;
+    input.id = field.name;
+    input.name = field.name;
+    if (field.required) input.required = true;
+
+    form.appendChild(label);
+    form.appendChild(input);
+  });
+
+  const button = document.createElement("button");
+  button.type = "submit";
+  button.textContent = "Trimite";
+  form.appendChild(button);
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    statusEl.textContent = "";
+    statusEl.className = "";
+    button.disabled = true;
+    button.textContent = "Se trimite...";
+
+    const entry = {};
+    FIELDS.forEach(field => {
+      entry[field.name] = document.getElementById(field.name).value.trim();
+    });
+    entry.createdAt = serverTimestamp();
+
+    try {
+      await addDoc(collection(db, "entries"), entry);
+      statusEl.textContent = "Thanks! You're on the list.";
+      statusEl.className = "ok";
+      form.reset();
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = "Something went wrong. Please try again.";
+      statusEl.className = "err";
+    } finally {
+      button.disabled = false;
+      button.textContent = "Trimite";
+    }
+  });
+</script>
 </body>
 </html>
